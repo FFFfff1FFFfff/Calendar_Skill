@@ -7,9 +7,11 @@
 ```
 客户浏览器  ──→  API Server (Express)  ──→  Nylas v3 API  ──→  Google Calendar
                       │
-                   SQLite
+               Vercel Postgres
               (grant_id / 预约记录)
 ```
+
+部署在 Vercel（serverless），数据库用 Vercel Postgres (Neon)。
 
 Phase 1 通过 Nylas 代理 Google OAuth，无需 GCP 验证，直接上线。
 
@@ -18,7 +20,7 @@ Phase 1 通过 Nylas 代理 Google OAuth，无需 GCP 验证，直接上线。
 ```
 ├── server/             # Express API
 │   ├── index.js        # 入口
-│   ├── db.js           # SQLite
+│   ├── db.js           # Vercel Postgres
 │   ├── routes/         # auth / availability / booking
 │   └── lib/            # nylas 封装 / 时段计算
 │
@@ -41,9 +43,13 @@ POST /api/book               创建预约
 ```bash
 # server
 cd server
-cp .env.example .env        # 填入 Nylas credentials
+cp .env.example .env        # 填入 Nylas credentials + Postgres 连接串
 npm install
 npm run dev                 # http://localhost:3000
+
+# ngrok（Nylas 回调需要公网地址）
+ngrok http 3000             # 得到 https://xxxx.ngrok-free.app
+                            # 把这个地址填到 Nylas Dashboard 的 Callback URI
 
 # widget
 cd widget

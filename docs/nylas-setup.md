@@ -67,11 +67,28 @@ Nylas 需要你自己的 Google OAuth credentials 来连接用户的 Google Cale
 
 ## 第六步：设置 Callback URI
 
-1. 在 Nylas Dashboard 的应用设置里
-2. 找到 **Callback URI**（Hosted Auth 回调地址）
-3. 设置为你的后端回调地址：
-   - 本地开发：`http://localhost:3000/auth/google/callback`
-   - 生产环境：`https://yourdomain.com/auth/google/callback`
+Nylas 认证完成后会把用户重定向到你的 Callback URI。因为开发服务器没有公网 IP，需要用 ngrok 暴露端口。
+
+### 开发环境（ngrok）
+
+1. 安装 ngrok：去 [ngrok.com](https://ngrok.com) 注册并下载，或 `npm install -g ngrok`
+2. 启动你的 Express server：`cd server && node index.js`（监听 3000 端口）
+3. 另开终端，启动 ngrok：`ngrok http 3000`
+4. 你会看到类似这样的输出：
+   ```
+   Forwarding  https://a1b2c3d4.ngrok-free.app → http://localhost:3000
+   ```
+5. 在 Nylas Dashboard 的应用设置里，把 **Callback URI** 设为：
+   - `https://a1b2c3d4.ngrok-free.app/auth/google/callback`
+
+> ngrok 免费版每次重启 URL 会变，需要重新更新 Nylas Dashboard。付费版可以固定子域名。
+
+### 生产环境（Vercel）
+
+部署到 Vercel 后，Callback URI 改为：
+- `https://your-app.vercel.app/auth/google/callback`
+
+> Nylas 支持多个 Callback URI，可以同时保留 ngrok 和 Vercel 的地址。
 
 ## 第七步：填入环境变量
 
@@ -80,13 +97,15 @@ Nylas 需要你自己的 Google OAuth credentials 来连接用户的 Google Cale
 ```
 NYLAS_CLIENT_ID=你的_nylas_client_id
 NYLAS_API_KEY=你的_nylas_api_key
-NYLAS_CALLBACK_URI=http://localhost:3000/auth/google/callback
+NYLAS_CALLBACK_URI=https://你的ngrok地址.ngrok-free.app/auth/google/callback
+POSTGRES_URL=你的_vercel_postgres_连接串
 ```
 
 ## 验证
 
-配置完成后，启动 server，访问 `http://localhost:3000/auth/google`。
-应该会跳转到 Google 登录页面，授权后回到你的 callback 地址。
+1. 确保 ngrok 正在运行且 URL 已填入 Nylas Dashboard
+2. 启动 server，访问 `http://localhost:3000/auth/google`
+3. 应该会跳转到 Google 登录页面，授权后通过 ngrok 回到你的 callback 地址
 
 ---
 

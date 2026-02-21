@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import db from '../db.js';
+import { sql } from '../db.js';
 import { getFreeBusy } from '../lib/nylas.js';
 import { computeAvailableSlots } from '../lib/slots.js';
 
@@ -18,21 +18,25 @@ router.get('/availability', async (req, res) => {
     }
 
     // Get calendar connection
-    const conn = db.prepare(
-      'SELECT nylas_grant_id, google_email FROM calendar_connections WHERE owner_id = ? AND is_valid = 1'
-    ).get(owner_id);
-    if (!conn) {
+    const { rows: connRows } = await sql`
+      SELECT nylas_grant_id, google_email FROM calendar_connections
+      WHERE owner_id = ${owner_id} AND is_valid = true
+    `;
+    if (!connRows.length) {
       return res.status(404).json({ error: 'No calendar connected for this owner' });
     }
+    const conn = connRows[0];
 
     // Get business hours for the day of week
     const dayOfWeek = (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7; // 0=Mon
-    const hours = db.prepare(
-      'SELECT * FROM business_hours WHERE owner_id = ? AND day_of_week = ?'
-    ).get(owner_id, dayOfWeek);
-    if (!hours) {
+    const { rows: hoursRows } = await sql`
+      SELECT * FROM business_hours
+      WHERE owner_id = ${owner_id} AND day_of_week = ${dayOfWeek}
+    `;
+    if (!hoursRows.length) {
       return res.json({ date, slots: [], message: 'Closed on this day' });
     }
+    const hours = hoursRows[0];
 
     // Query Nylas free/busy for the full day in owner's timezone
     const timezone = hours.timezone || 'America/New_York';

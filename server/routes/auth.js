@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import db from '../db.js';
+import { sql } from '../db.js';
 import { getAuthUrl, exchangeCode } from '../lib/nylas.js';
 
 const router = Router();
@@ -25,15 +25,16 @@ router.get('/google/callback', async (req, res) => {
     const email = tokenResponse.email || '';
 
     // Upsert calendar connection
-    db.prepare(`
+    const id = uuid();
+    await sql`
       INSERT INTO calendar_connections (id, owner_id, nylas_grant_id, google_email)
-      VALUES (?, ?, ?, ?)
+      VALUES (${id}, ${ownerId}, ${grantId}, ${email})
       ON CONFLICT(owner_id) DO UPDATE SET
-        nylas_grant_id = excluded.nylas_grant_id,
-        google_email = excluded.google_email,
-        connected_at = datetime('now'),
-        is_valid = 1
-    `).run(uuid(), ownerId, grantId, email);
+        nylas_grant_id = EXCLUDED.nylas_grant_id,
+        google_email = EXCLUDED.google_email,
+        connected_at = NOW(),
+        is_valid = true
+    `;
 
     res.json({ success: true, owner_id: ownerId, email });
   } catch (err) {

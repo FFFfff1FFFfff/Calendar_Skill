@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuid } from 'uuid';
-import db from '../db.js';
+import { sql } from '../db.js';
 import { getFreeBusy, createEvent } from '../lib/nylas.js';
 
 const router = Router();
@@ -14,12 +14,14 @@ router.post('/book', async (req, res) => {
     }
 
     // Get calendar connection
-    const conn = db.prepare(
-      'SELECT nylas_grant_id, google_email FROM calendar_connections WHERE owner_id = ? AND is_valid = 1'
-    ).get(owner_id);
-    if (!conn) {
+    const { rows: connRows } = await sql`
+      SELECT nylas_grant_id, google_email FROM calendar_connections
+      WHERE owner_id = ${owner_id} AND is_valid = true
+    `;
+    if (!connRows.length) {
       return res.status(404).json({ error: 'No calendar connected for this owner' });
     }
+    const conn = connRows[0];
 
     // Recheck free/busy to prevent double booking
     const freeBusyData = await getFreeBusy(
@@ -50,10 +52,12 @@ router.post('/book', async (req, res) => {
 
     // Save booking locally
     const bookingId = uuid();
-    db.prepare(`
+    const bookingNotes = notes || '';
+    const eventId = event.id || '';
+    await sql`
       INSERT INTO bookings (id, owner_id, customer_name, customer_email, start_time, end_time, notes, nylas_event_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(bookingId, owner_id, customer_name, customer_email, start_time, end_time, notes || '', event.id || '');
+      VALUES (${bookingId}, ${owner_id}, ${customer_name}, ${customer_email}, ${start_time}, ${end_time}, ${bookingNotes}, ${eventId})
+    `;
 
     res.json({
       success: true,

@@ -1,12 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { initDb } from './db.js';
 import authRouter from './routes/auth.js';
 import availabilityRouter from './routes/availability.js';
 import bookingRouter from './routes/booking.js';
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +19,20 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+// Local dev: init DB and start listening
+// Vercel: api/index.js handles this instead
+if (!process.env.VERCEL) {
+  const port = process.env.PORT || 3000;
+  initDb()
+    .then(() => {
+      app.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database:', err);
+      process.exit(1);
+    });
+}
+
+export default app;
