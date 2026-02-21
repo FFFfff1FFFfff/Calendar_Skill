@@ -24,19 +24,23 @@ router.get('/google/callback', async (req, res) => {
     const grantId = tokenResponse.grantId;
     const email = tokenResponse.email || '';
 
-    // Upsert calendar connection
-    const id = uuid();
-    await sql`
-      INSERT INTO calendar_connections (id, owner_id, nylas_grant_id, google_email)
-      VALUES (${id}, ${ownerId}, ${grantId}, ${email})
-      ON CONFLICT(owner_id) DO UPDATE SET
-        nylas_grant_id = EXCLUDED.nylas_grant_id,
-        google_email = EXCLUDED.google_email,
-        connected_at = NOW(),
-        is_valid = true
-    `;
+    console.log('Auth success:', { ownerId, grantId, email });
 
-    res.json({ success: true, owner_id: ownerId, email });
+    // Save to DB if available
+    if (process.env.POSTGRES_URL) {
+      const id = uuid();
+      await sql`
+        INSERT INTO calendar_connections (id, owner_id, nylas_grant_id, google_email)
+        VALUES (${id}, ${ownerId}, ${grantId}, ${email})
+        ON CONFLICT(owner_id) DO UPDATE SET
+          nylas_grant_id = EXCLUDED.nylas_grant_id,
+          google_email = EXCLUDED.google_email,
+          connected_at = NOW(),
+          is_valid = true
+      `;
+    }
+
+    res.json({ success: true, owner_id: ownerId, grant_id: grantId, email });
   } catch (err) {
     console.error('Auth callback error:', err);
     res.status(500).json({ error: 'Authentication failed' });

@@ -23,16 +23,21 @@ app.get('/health', (req, res) => {
 // Vercel: api/index.js handles this instead
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 3000;
-  initDb()
-    .then(() => {
-      app.listen(port, () => {
-        console.log(`Server running on http://localhost:${port}`);
-      });
-    })
-    .catch((err) => {
-      console.error('Failed to initialize database:', err);
-      process.exit(1);
+  const start = async () => {
+    if (process.env.POSTGRES_URL) {
+      await initDb();
+      console.log('Database initialized');
+    } else {
+      console.log('No POSTGRES_URL — skipping database, running API only');
+    }
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
     });
+  };
+  start().catch((err) => {
+    console.error('Failed to start:', err);
+    process.exit(1);
+  });
 }
 
 export default app;
