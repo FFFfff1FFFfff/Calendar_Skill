@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Widget Demo</title>
+  <link rel="stylesheet" href="src/styles.css" />
+</head>
+<body>
+  <h1 style="text-align:center; font-family:sans-serif;">Book an Appointment</h1>
+  <div id="booking-widget"></div>
+
+  <script type="module">
+    import './src/main.js';
+
+    CalendarBooking.init({
+      el: '#booking-widget',
+      apiUrl: 'http://localhost:3000',
+      ownerId: 'demo-owner',
+    });
+  </script>
+</body>
+</html>
