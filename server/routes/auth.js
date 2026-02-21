@@ -29,7 +29,8 @@ router.get('/google/callback', async (req, res) => {
     // Save to DB if available
     if (process.env.POSTGRES_URL) {
       const id = uuid();
-      await sql`
+      const db = sql();
+      await db`
         INSERT INTO calendar_connections (id, owner_id, nylas_grant_id, google_email)
         VALUES (${id}, ${ownerId}, ${grantId}, ${email})
         ON CONFLICT(owner_id) DO UPDATE SET

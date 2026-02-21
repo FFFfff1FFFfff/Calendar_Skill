@@ -1,8 +1,17 @@
 import { neon } from '@neondatabase/serverless';
 
-const sql = neon(process.env.POSTGRES_URL, { fullResults: true });
+let sql = null;
+
+function getSql() {
+  if (!sql) {
+    if (!process.env.POSTGRES_URL) throw new Error('POSTGRES_URL not set');
+    sql = neon(process.env.POSTGRES_URL, { fullResults: true });
+  }
+  return sql;
+}
 
 export async function initDb() {
+  const sql = getSql();
   await sql`
     CREATE TABLE IF NOT EXISTS calendar_connections (
       id TEXT PRIMARY KEY,
@@ -43,4 +52,4 @@ export async function initDb() {
   `;
 }
 
-export { sql };
+export { getSql as sql };
